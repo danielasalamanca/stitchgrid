@@ -9,64 +9,68 @@
 </head>
 <body>
 
-  <h1>Stitchgrid</h1>
+  <header class="top-bar">
+    <h1>Stitch Grid</h1>
 
-  <details class="controls-panel">
-    <summary>Ajustar grilla</summary>
-    <div class="controls">
-      <div class="control-row">
-        <label for="cols">Bloques de columnas</label>
-        <input id="cols" type="number" min="1" max="50" value="3">
-      </div>
-      <div class="control-row">
-        <label for="rows">Bloques de filas</label>
-        <input id="rows" type="number" min="1" max="50" value="3">
-      </div>
-      <div class="control-row">
-        <label for="gridColor">Color de línea</label>
-        <input id="gridColor" type="color" value="#c8c8c8">
-      </div>
-      <div class="control-row">
-        <label for="fillColor">Color relleno</label>
-        <input id="fillColor" type="color" value="#000000">
-      </div>
-      <div class="control-row">
-        <label for="bgColor">Fondo</label>
-        <input id="bgColor" type="color" value="#ffffff">
-      </div>
-      <div class="control-actions">
-        <button id="applyButton" type="button">Aplicar</button>
+    <nav class="toolbar">
+      <button id="undoButton" type="button">Deshacer</button>
+      <button id="clearButton" type="button">Limpiar</button>
+
+      <div class="zoom-controls">
+        <button id="zoomOutButton" type="button">−</button>
+        <span id="zoomLabel">100%</span>
+        <button id="zoomInButton" type="button">+</button>
       </div>
 
-      <div class="control-row control-row--full">
-        <label>Imagen de referencia</label>
-        <div class="ref-image-row">
-          <label for="refImage" class="ref-image-label">Cargar imagen</label>
-          <input id="refImage" type="file" accept="image/*">
-          <button id="removeRefImage" type="button" class="btn-remove" style="display:none">Quitar</button>
+      <button id="exportSVGButton" type="button">Exportar</button>
+
+      <details class="controls-panel">
+        <summary id="adjustButton">Ajustar grilla</summary>
+        <div class="controls">
+          <div class="control-row">
+            <label for="cols">Bloques de columnas</label>
+            <input id="cols" type="number" min="1" max="50" value="3">
+          </div>
+          <div class="control-row">
+            <label for="rows">Bloques de filas</label>
+            <input id="rows" type="number" min="1" max="50" value="3">
+          </div>
+          <div class="control-row">
+            <label for="gridColor">Color de línea</label>
+            <input id="gridColor" type="color" value="#c8c8c8">
+          </div>
+          <div class="control-row">
+            <label for="fillColor">Color relleno</label>
+            <input id="fillColor" type="color" value="#000000">
+          </div>
+          <div class="control-row">
+            <label for="bgColor">Fondo</label>
+            <input id="bgColor" type="color" value="#ffffff">
+          </div>
+          <div class="control-actions">
+            <button id="applyButton" type="button">Aplicar</button>
+          </div>
+
+          <div class="control-row control-row--full">
+            <label>Imagen de referencia</label>
+            <div class="ref-image-row">
+              <label for="refImage" class="ref-image-label">Cargar imagen</label>
+              <input id="refImage" type="file" accept="image/*">
+              <button id="removeRefImage" type="button" class="btn-remove" style="display:none">Quitar</button>
+            </div>
+          </div>
+          <div class="control-row control-row--full" id="refOpacityRow" style="display:none">
+            <label for="refOpacity">Opacidad de referencia</label>
+            <input id="refOpacity" type="range" min="0" max="100" value="40">
+          </div>
+          <div class="control-row control-row--full" id="refScaleRow" style="display:none">
+            <label for="refScale">Tamaño de referencia</label>
+            <input id="refScale" type="range" min="10" max="300" value="100">
+          </div>
         </div>
-      </div>
-      <div class="control-row control-row--full" id="refOpacityRow" style="display:none">
-        <label for="refOpacity">Opacidad de referencia</label>
-        <input id="refOpacity" type="range" min="0" max="100" value="40">
-      </div>
-      <div class="control-row control-row--full" id="refScaleRow" style="display:none">
-        <label for="refScale">Tamaño de referencia</label>
-        <input id="refScale" type="range" min="10" max="300" value="100">
-      </div>
-    </div>
-  </details>
-
-  <div class="quick-actions">
-    <button id="undoButton" type="button">Deshacer</button>
-    <button id="clearButton" type="button">Limpiar</button>
-    <button id="exportSVGButton" type="button">Exportar SVG</button>
-    <div class="zoom-controls">
-      <button id="zoomOutButton" type="button" class="btn-zoom">−</button>
-      <span id="zoomLabel" class="zoom-label">100%</span>
-      <button id="zoomInButton" type="button" class="btn-zoom">+</button>
-    </div>
-  </div>
+      </details>
+    </nav>
+  </header>
 
   <div id="canvas-wrapper"></div>
 

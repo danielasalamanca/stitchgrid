@@ -1,72 +1,170 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  text-align: center;
-  background: linear-gradient(180deg, #f7f3ee 0%, #ebe4d8 100%);
+  font-family: "basic-sans", "Helvetica Neue", Arial, sans-serif;
+  background: #f0ebe3;
   margin: 0;
   min-height: 100vh;
-  color: #222;
+  color: #1a1a1a;
+}
+
+/* ── Top bar ── */
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
 }
 
 h1 {
   font-family: "p22-folk-art-cross", sans-serif;
   font-weight: 400;
   font-style: normal;
-  font-size: 42px;
+  font-size: 38px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #222;
-  margin: 24px 0 12px;
-}
-
-.controls {
-  width: min(720px, calc(100% - 32px));
-  margin: 14px auto 20px;
-  padding: 18px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(34, 34, 34, 0.12);
-  border-radius: 18px;
-  box-shadow: 0 12px 30px rgba(72, 53, 28, 0.08);
-  backdrop-filter: blur(10px);
-  box-sizing: border-box;
-}
-
-.controls-panel {
-  width: min(720px, calc(100% - 32px));
-  margin: 0 auto 18px;
-  text-align: left;
-}
-
-.controls-panel summary {
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  border-radius: 999px;
-  background: #222;
-  color: #fff;
-  cursor: pointer;
-  user-select: none;
-  font-size: 15px;
-  font-weight: 600;
-  box-shadow: 0 10px 24px rgba(34, 34, 34, 0.16);
-}
-
-.controls-panel summary::-webkit-details-marker {
-  display: none;
-}
-
-.controls-panel summary::after {
-  content: "+";
-  font-size: 18px;
+  color: #1a1a1a;
+  margin: 0;
+  flex-shrink: 0;
   line-height: 1;
 }
 
+/* ── Toolbar ── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons (outline style) ── */
+
+button {
+  font-family: "basic-sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border: 1.5px solid #1a1a1a;
+  background: transparent;
+  color: #1a1a1a;
+  cursor: pointer;
+  border-radius: 999px;
+  line-height: 1;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+button:disabled {
+  border-color: #bbb;
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  background: transparent;
+  color: #bbb;
+}
+
+/* ── Zoom controls (single pill) ── */
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.zoom-controls button {
+  border: none;
+  border-radius: 0;
+  padding: 10px 14px;
+  font-size: 16px;
+}
+
+.zoom-controls button:hover {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.zoom-label {
+  font-family: "basic-sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  min-width: 48px;
+  text-align: center;
+  padding: 0 4px;
+  color: #1a1a1a;
+}
+
+/* ── Ajustar grilla (filled dark button + dropdown) ── */
+
+.controls-panel {
+  position: relative;
+}
+
+.controls-panel summary {
+  font-family: "basic-sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  list-style: none;
+  padding: 10px 20px;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.controls-panel summary::-webkit-details-marker { display: none; }
+
+.controls-panel summary::after {
+  content: " +";
+}
+
 .controls-panel[open] summary::after {
-  content: "-";
+  content: " −";
+}
+
+.controls-panel summary:hover {
+  background: #333;
+}
+
+/* ── Controls dropdown panel ── */
+
+.controls {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: min(480px, calc(100vw - 48px));
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  background: #fff;
+  border: 1.5px solid rgba(26, 26, 26, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  text-align: left;
 }
 
 .control-row {
@@ -74,33 +172,65 @@ h1 {
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  text-align: left;
 }
 
 .control-row label {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #666;
 }
 
-.control-row input {
+.control-row input[type="number"],
+.control-row input[type="text"] {
   width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid #cdbfae;
-  border-radius: 10px;
-  background: #fffdf9;
-  color: #222;
+  padding: 9px 12px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #1a1a1a;
   font-size: 15px;
+  font-family: inherit;
 }
 
 .control-row input[type="color"] {
+  width: 100%;
   padding: 4px;
-  min-height: 44px;
+  min-height: 42px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.control-row input[type="range"] {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  accent-color: #1a1a1a;
+  height: 24px;
+  cursor: pointer;
 }
 
 .control-row--full {
   grid-column: 1 / -1;
 }
+
+.control-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.control-actions button {
+  font-size: 12px;
+  padding: 8px 18px;
+}
+
+/* ── Reference image controls ── */
 
 .ref-image-row {
   display: flex;
@@ -112,19 +242,22 @@ h1 {
 .ref-image-label {
   display: inline-flex;
   align-items: center;
-  padding: 10px 18px;
-  background: #222;
-  color: #fff;
-  border-radius: 999px;
-  font-size: 15px;
+  font-family: "basic-sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 999px;
   cursor: pointer;
-  transition: background 0.18s ease;
   white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .ref-image-label:hover {
-  background: #444;
+  background: #1a1a1a;
+  color: #fff;
 }
 
 #refImage {
@@ -132,104 +265,39 @@ h1 {
 }
 
 .btn-remove {
-  padding: 10px 16px;
-  font-size: 14px;
-  background: #8b837a;
-}
-
-.control-row input[type="range"] {
-  padding: 0;
-  border: none;
-  background: transparent;
-  accent-color: #222;
-  height: 24px;
-}
-
-.control-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.quick-actions {
-  width: min(720px, calc(100% - 32px));
-  margin: 0 auto 18px;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-button {
-  font-family: inherit;
-  padding: 10px 18px;
-  border: none;
-  background: #222;
-  color: white;
-  cursor: pointer;
-  border-radius: 999px;
-  font-size: 15px;
-  transition: transform 0.18s ease, background 0.18s ease;
-}
-
-button:hover {
-  background: #444;
-  transform: translateY(-1px);
-}
-
-button:disabled {
-  background: #8b837a;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.zoom-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-zoom {
+  font-size: 12px;
   padding: 8px 14px;
-  font-size: 18px;
-  line-height: 1;
+  border-color: #bbb;
+  color: #666;
 }
 
-.zoom-label {
-  font-size: 14px;
-  font-weight: 600;
-  min-width: 46px;
-  text-align: center;
-  color: #222;
+.btn-remove:hover {
+  background: #666;
+  border-color: #666;
+  color: #fff;
 }
+
+/* ── Canvas wrapper ── */
 
 #canvas-wrapper {
-  width: calc(100% - 32px);
-  margin: 0 auto 28px;
+  width: calc(100% - 48px);
+  margin: 0 auto 32px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
 }
 
 canvas {
   display: block;
-  margin: 0 auto;
-  border: 1px solid rgba(34, 34, 34, 0.35);
-  box-shadow: 0 14px 34px rgba(34, 34, 34, 0.12);
-  box-sizing: border-box;
+  border: 1.5px solid rgba(26, 26, 26, 0.2);
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
-@media (max-width: 640px) {
-  h1 {
-    font-size: 34px;
-  }
+/* ── Responsive ── */
 
-  .controls {
-    grid-template-columns: 1fr;
-  }
+@media (max-width: 640px) {
+  h1 { font-size: 28px; }
+  .top-bar { padding: 14px 16px; }
+  #canvas-wrapper { width: calc(100% - 32px); }
 }

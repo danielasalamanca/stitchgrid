@@ -62,6 +62,12 @@ function setup() {
 
   window.addEventListener("resize", () => { updateCanvasSize(); redraw(); });
   window.addEventListener("mouseup", commitStroke);
+  window.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "z") {
+      event.preventDefault();
+      undoLastAction();
+    }
+  });
 
   const controlsPanel = document.querySelector(".controls-panel");
   if (controlsPanel) {

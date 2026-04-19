@@ -47,6 +47,20 @@
             <label for="bgColor">Fondo</label>
             <input id="bgColor" type="color" value="#ffffff">
           </div>
+          <div class="control-row control-row--full">
+            <label>Símbolo</label>
+            <div class="shape-picker">
+              <button id="shapeSquare" type="button" class="btn-shape btn-shape--active" title="Cuadrado">
+                <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/></svg>
+              </button>
+              <button id="shapeCircle" type="button" class="btn-shape" title="Círculo">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>
+              </button>
+              <button id="shapeCross" type="button" class="btn-shape" title="Cruz">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="5" x2="19" y2="19" stroke-linecap="round" stroke-width="3.5"/><line x1="19" y1="5" x2="5" y2="19" stroke-linecap="round" stroke-width="3.5"/></svg>
+              </button>
+            </div>
+          </div>
           <div class="control-actions">
             <button id="applyButton" type="button">Aplicar</button>
           </div>
@@ -66,6 +80,9 @@
           <div class="control-row control-row--full" id="refScaleRow" style="display:none">
             <label for="refScale">Tamaño de referencia</label>
             <input id="refScale" type="range" min="10" max="300" value="100">
+          </div>
+          <div class="control-row control-row--full" id="refMoveRow" style="display:none">
+            <button id="refMoveToggle" type="button" class="btn-mode">Mover imagen</button>
           </div>
         </div>
       </details>

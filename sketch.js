@@ -8,16 +8,27 @@ let size = 20;
 let gridColor = "#c8c8c8";
 let fillColor = "#000000";
 let bgColor = "#ffffff";
+let fillShape = "square";
 
 let grid = [];
 let controls = {};
 let canvasElement;
 let lastPointerEvent = null;
 let history = [];
+let redoHistory = [];
 let currentStroke = null;
+let strokeValue = 1;
 let refImage = null;
 let refOpacity = 0.4;
 let refScale = 1.0;
+let refOffsetX = 0;
+let refOffsetY = 0;
+let refMoveMode = false;
+let isDraggingRef = false;
+let refDragStartMouseX = 0;
+let refDragStartMouseY = 0;
+let refDragStartOffsetX = 0;
+let refDragStartOffsetY = 0;
 
 let zoom = 1;
 let baseSize = 20;
@@ -41,6 +52,11 @@ function setup() {
     removeRefImage: document.getElementById("removeRefImage"),
     refOpacityRow: document.getElementById("refOpacityRow"),
     refScaleRow: document.getElementById("refScaleRow"),
+    refMoveRow: document.getElementById("refMoveRow"),
+    refMoveToggle: document.getElementById("refMoveToggle"),
+    shapeSquare: document.getElementById("shapeSquare"),
+    shapeCircle: document.getElementById("shapeCircle"),
+    shapeCross: document.getElementById("shapeCross"),
     zoomInButton: document.getElementById("zoomInButton"),
     zoomOutButton: document.getElementById("zoomOutButton"),
     zoomLabel: document.getElementById("zoomLabel"),
@@ -61,9 +77,19 @@ function setup() {
   redraw();
 
   window.addEventListener("resize", () => { updateCanvasSize(); redraw(); });
-  window.addEventListener("mouseup", commitStroke);
+  window.addEventListener("mouseup", () => {
+    if (isDraggingRef) {
+      isDraggingRef = false;
+      canvasElement.style.cursor = refMoveMode ? "grab" : "";
+      return;
+    }
+    commitStroke();
+  });
   window.addEventListener("keydown", (event) => {
-    if ((event.metaKey || event.ctrlKey) && event.key === "z") {
+    if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "z") {
+      event.preventDefault();
+      redoLastAction();
+    } else if ((event.metaKey || event.ctrlKey) && event.key === "z") {
       event.preventDefault();
       undoLastAction();
     }
@@ -104,6 +130,7 @@ function wireControls() {
         refImage = img;
         controls.refOpacityRow.style.display = "";
         controls.refScaleRow.style.display = "";
+        controls.refMoveRow.style.display = "";
         controls.removeRefImage.style.display = "";
         redraw();
       });
@@ -123,11 +150,37 @@ function wireControls() {
 
   controls.removeRefImage.addEventListener("click", () => {
     refImage = null;
+    refOffsetX = 0;
+    refOffsetY = 0;
+    refMoveMode = false;
+    controls.refMoveToggle.classList.remove("btn-mode--active");
     controls.refImage.value = "";
     controls.refOpacityRow.style.display = "none";
     controls.refScaleRow.style.display = "none";
+    controls.refMoveRow.style.display = "none";
     controls.removeRefImage.style.display = "none";
+    canvasElement.style.cursor = "";
     redraw();
+  });
+
+  const shapeButtons = {
+    square: controls.shapeSquare,
+    circle: controls.shapeCircle,
+    cross: controls.shapeCross,
+  };
+  for (const [shape, btn] of Object.entries(shapeButtons)) {
+    btn.addEventListener("click", () => {
+      fillShape = shape;
+      for (const b of Object.values(shapeButtons)) b.classList.remove("btn-shape--active");
+      btn.classList.add("btn-shape--active");
+      redraw();
+    });
+  }
+
+  controls.refMoveToggle.addEventListener("click", () => {
+    refMoveMode = !refMoveMode;
+    controls.refMoveToggle.classList.toggle("btn-mode--active", refMoveMode);
+    canvasElement.style.cursor = refMoveMode ? "grab" : "";
   });
 
   controls.zoomInButton.addEventListener("click", () => changeZoom(zoom * 1.5));
@@ -147,8 +200,8 @@ function draw() {
   if (refImage) {
     const imgW = width * refScale;
     const imgH = imgW * (refImage.height / refImage.width);
-    const imgX = (width - imgW) / 2;
-    const imgY = (height - imgH) / 2;
+    const imgX = (width - imgW) / 2 + refOffsetX;
+    const imgY = (height - imgH) / 2 + refOffsetY;
     tint(255, refOpacity * 255);
     image(refImage, imgX, imgY, imgW, imgH);
     noTint();
@@ -166,20 +219,65 @@ function draw() {
       rect(x * size, y * size, size, size);
 
       if (cellValue === 1) {
-        noStroke();
-        fill(fillColor);
-        rect(x * size + padding, y * size + padding, fillSize, fillSize);
+        const cx = x * size + size / 2;
+        const cy = y * size + size / 2;
+        if (fillShape === "circle") {
+          noStroke();
+          fill(fillColor);
+          ellipse(cx, cy, fillSize, fillSize);
+        } else if (fillShape === "cross") {
+          const arm = fillSize / 2 * 0.65;
+          stroke(fillColor);
+          strokeWeight(fillSize * 0.18);
+          strokeCap(ROUND);
+          line(cx - arm, cy - arm, cx + arm, cy + arm);
+          line(cx + arm, cy - arm, cx - arm, cy + arm);
+          strokeCap(SQUARE);
+          strokeWeight(1);
+        } else {
+          noStroke();
+          fill(fillColor);
+          rect(x * size + padding, y * size + padding, fillSize, fillSize);
+        }
       }
     }
   }
 }
 
 function handleCanvasPress(event) {
+  if (refMoveMode) {
+    const pointer = getCanvasPointer(event);
+    if (pointer) {
+      isDraggingRef = true;
+      refDragStartMouseX = pointer.x;
+      refDragStartMouseY = pointer.y;
+      refDragStartOffsetX = refOffsetX;
+      refDragStartOffsetY = refOffsetY;
+      canvasElement.style.cursor = "grabbing";
+    }
+    return;
+  }
+  const pointer = getCanvasPointer(event);
+  if (pointer) {
+    const x = floor(pointer.x / size);
+    const y = floor(pointer.y / size);
+    strokeValue = insideGrid(x, y) && grid[y][x] === 1 ? 0 : 1;
+  }
   beginStroke();
   paint(event);
 }
 
 function mouseDragged(event) {
+  if (isDraggingRef) {
+    const pointer = getCanvasPointer(event);
+    if (pointer) {
+      refOffsetX = refDragStartOffsetX + (pointer.x - refDragStartMouseX);
+      refOffsetY = refDragStartOffsetY + (pointer.y - refDragStartMouseY);
+      redraw();
+    }
+    return;
+  }
+
   if (!currentStroke) {
     return;
   }
@@ -187,7 +285,13 @@ function mouseDragged(event) {
   paint(event);
 }
 
+
 function handleCanvasRelease() {
+  if (isDraggingRef) {
+    isDraggingRef = false;
+    canvasElement.style.cursor = refMoveMode ? "grab" : "";
+    return;
+  }
   commitStroke();
 }
 
@@ -201,9 +305,9 @@ function paint(event) {
   let x = floor(pointer.x / size);
   let y = floor(pointer.y / size);
 
-  if (insideGrid(x, y) && grid[y][x] !== 1) {
-    rememberCellChange(currentStroke, x, y, grid[y][x]);
-    grid[y][x] = 1;
+  if (insideGrid(x, y) && grid[y][x] !== strokeValue) {
+    rememberCellChange(currentStroke, x, y, grid[y][x], strokeValue);
+    grid[y][x] = strokeValue;
     redraw();
   }
 }
@@ -216,13 +320,14 @@ function clearGrid() {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (grid[y][x] !== 0) {
-        clearAction.push({ x, y, previousValue: grid[y][x] });
+        clearAction.push({ x, y, previousValue: grid[y][x], nextValue: 0 });
       }
     }
   }
 
   if (clearAction.length > 0) {
     history.push(clearAction);
+    redoHistory = [];
     updateUndoButton();
   }
 
@@ -251,6 +356,7 @@ function applySettings() {
     resetGrid();
     updateCanvasSize();
     history = [];
+    redoHistory = [];
     currentStroke = null;
     updateUndoButton();
   } else {
@@ -360,10 +466,21 @@ function exportSVG() {
   parts.push(`<rect width="${svgW}" height="${svgH}" fill="${bgColor}"/>`);
 
   // Filled cells
+  const crossArm = (fillSize / 2) * 0.65;
+  const crossSW = fillSize * 0.10;
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       if (grid[y][x] === 1) {
-        parts.push(`<rect x="${x * cellSize + pad}" y="${y * cellSize + pad}" width="${fillSize}" height="${fillSize}" fill="${fillColor}"/>`);
+        const cx = x * cellSize + cellSize / 2;
+        const cy = y * cellSize + cellSize / 2;
+        if (fillShape === "circle") {
+          parts.push(`<ellipse cx="${cx}" cy="${cy}" rx="${fillSize / 2}" ry="${fillSize / 2}" fill="${fillColor}"/>`);
+        } else if (fillShape === "cross") {
+          parts.push(`<line x1="${cx - crossArm}" y1="${cy - crossArm}" x2="${cx + crossArm}" y2="${cy + crossArm}" stroke="${fillColor}" stroke-width="${crossSW}" stroke-linecap="round"/>`);
+          parts.push(`<line x1="${cx + crossArm}" y1="${cy - crossArm}" x2="${cx - crossArm}" y2="${cy + crossArm}" stroke="${fillColor}" stroke-width="${crossSW}" stroke-linecap="round"/>`);
+        } else {
+          parts.push(`<rect x="${x * cellSize + pad}" y="${y * cellSize + pad}" width="${fillSize}" height="${fillSize}" fill="${fillColor}"/>`);
+        }
       }
     }
   }
@@ -392,18 +509,19 @@ function beginStroke() {
 function commitStroke() {
   if (currentStroke && currentStroke.length > 0) {
     history.push(currentStroke);
+    redoHistory = [];
     updateUndoButton();
   }
 
   currentStroke = null;
 }
 
-function rememberCellChange(action, x, y, previousValue) {
+function rememberCellChange(action, x, y, previousValue, nextValue) {
   if (!action) {
     return;
   }
 
-  action.push({ x, y, previousValue });
+  action.push({ x, y, previousValue, nextValue });
 }
 
 function undoLastAction() {
@@ -416,8 +534,27 @@ function undoLastAction() {
     return;
   }
 
+  redoHistory.push(action);
   for (const change of action) {
     grid[change.y][change.x] = change.previousValue;
+  }
+
+  updateUndoButton();
+  redraw();
+}
+
+function redoLastAction() {
+  commitStroke();
+
+  const action = redoHistory.pop();
+
+  if (!action) {
+    return;
+  }
+
+  history.push(action);
+  for (const change of action) {
+    grid[change.y][change.x] = change.nextValue;
   }
 
   updateUndoButton();

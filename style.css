@@ -230,6 +230,59 @@ button:disabled:hover {
   padding: 8px 18px;
 }
 
+/* ── Shape picker ── */
+
+.shape-picker {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-shape {
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-shape svg {
+  width: 100%;
+  height: 100%;
+  fill: #aaa;
+  stroke: none;
+}
+
+.btn-shape svg line {
+  fill: none;
+  stroke: #aaa;
+}
+
+.btn-shape:hover svg {
+  fill: #555;
+}
+
+.btn-shape:hover svg line {
+  stroke: #555;
+}
+
+.btn-shape--active {
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+}
+
+.btn-shape--active svg {
+  fill: #fff !important;
+}
+
+.btn-shape--active svg line {
+  stroke: #fff !important;
+}
+
 /* ── Reference image controls ── */
 
 .ref-image-row {
@@ -275,6 +328,31 @@ button:disabled:hover {
   background: #666;
   border-color: #666;
   color: #fff;
+}
+
+.btn-mode {
+  width: 100%;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-color: #bbb;
+  color: #666;
+}
+
+.btn-mode:hover {
+  background: #666;
+  border-color: #666;
+  color: #fff;
+}
+
+.btn-mode--active {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.btn-mode--active:hover {
+  background: #444;
+  border-color: #444;
 }
 
 /* ── Canvas wrapper ── */

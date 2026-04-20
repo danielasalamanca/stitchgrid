@@ -360,8 +360,14 @@ button:disabled:hover {
 #canvas-wrapper {
   width: calc(100% - 48px);
   margin: 0 auto 32px;
+  overflow: auto;
+}
+
+#canvas-stage {
+  width: max-content;
+  min-width: 100%;
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: flex-start;
 }
 

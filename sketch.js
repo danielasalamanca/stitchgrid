@@ -13,6 +13,7 @@ let fillShape = "square";
 let grid = [];
 let controls = {};
 let canvasElement;
+let wrapperElement;
 let lastPointerEvent = null;
 let history = [];
 let redoHistory = [];
@@ -63,8 +64,10 @@ function setup() {
     exportSVGButton: document.getElementById("exportSVGButton"),
   };
 
+  wrapperElement = document.getElementById("canvas-wrapper");
+
   const canvas = createCanvas(cols * size, rows * size);
-  canvas.parent("canvas-wrapper");
+  canvas.parent("canvas-stage");
   canvas.mousePressed(handleCanvasPress);
   canvas.mouseReleased(handleCanvasRelease);
   canvasElement = canvas.elt;
@@ -183,14 +186,24 @@ function wireControls() {
     canvasElement.style.cursor = refMoveMode ? "grab" : "";
   });
 
-  controls.zoomInButton.addEventListener("click", () => changeZoom(zoom * 1.5));
-  controls.zoomOutButton.addEventListener("click", () => changeZoom(zoom / 1.5));
+  controls.zoomInButton.addEventListener("click", () => {
+    const anchorPoint = getPreferredZoomPoint();
+    changeZoom(zoom * 1.5, anchorPoint?.x, anchorPoint?.y);
+  });
+  controls.zoomOutButton.addEventListener("click", () => {
+    const anchorPoint = getPreferredZoomPoint();
+    changeZoom(zoom / 1.5, anchorPoint?.x, anchorPoint?.y);
+  });
+
+  canvasElement.addEventListener("mousemove", rememberPointerEvent);
+  canvasElement.addEventListener("mouseenter", rememberPointerEvent);
 
   canvasElement.addEventListener("wheel", (event) => {
     if (!event.ctrlKey && !event.metaKey) return;
     event.preventDefault();
     const delta = event.deltaY > 0 ? 1 / 1.2 : 1.2;
-    changeZoom(zoom * delta);
+    rememberPointerEvent(event);
+    changeZoom(zoom * delta, event.clientX, event.clientY);
   }, { passive: false });
 }
 
@@ -209,12 +222,14 @@ function draw() {
 
   const padding = Math.max(1, size * 0.1);
   const fillSize = size - padding * 2;
+  const gridStrokeWeight = Math.max(0.35, Math.min(1, zoom));
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const cellValue = grid[y] && grid[y][x] !== undefined ? grid[y][x] : 0;
 
       stroke(gridColor);
+      strokeWeight(gridStrokeWeight);
       noFill();
       rect(x * size, y * size, size, size);
 
@@ -420,6 +435,73 @@ function getCanvasPointer(event) {
   return { x: relativeX, y: relativeY };
 }
 
+function rememberPointerEvent(event) {
+  lastPointerEvent = event;
+}
+
+function getPreferredZoomPoint() {
+  if (!lastPointerEvent || !canvasElement) {
+    return null;
+  }
+
+  const bounds = canvasElement.getBoundingClientRect();
+  const { clientX, clientY } = lastPointerEvent;
+
+  if (clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom) {
+    return null;
+  }
+
+  return { x: clientX, y: clientY };
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getZoomAnchor(clientX, clientY) {
+  if (!wrapperElement || !canvasElement) {
+    return null;
+  }
+
+  const wrapperBounds = wrapperElement.getBoundingClientRect();
+  const canvasBounds = canvasElement.getBoundingClientRect();
+  const fallbackClientX = wrapperBounds.left + wrapperElement.clientWidth / 2;
+  const fallbackClientY = wrapperBounds.top + Math.min(wrapperElement.clientHeight || canvasBounds.height, canvasBounds.height) / 2;
+  const anchorClientX = clientX ?? fallbackClientX;
+  const anchorClientY = clientY ?? fallbackClientY;
+
+  return {
+    clientX: anchorClientX,
+    clientY: anchorClientY,
+    viewportX: anchorClientX - wrapperBounds.left,
+    viewportY: anchorClientY - wrapperBounds.top,
+    ratioX: canvasBounds.width > 0 ? clamp((anchorClientX - canvasBounds.left) / canvasBounds.width, 0, 1) : 0.5,
+    ratioY: canvasBounds.height > 0 ? clamp((anchorClientY - canvasBounds.top) / canvasBounds.height, 0, 1) : 0.5,
+  };
+}
+
+function applyZoomAnchor(anchor) {
+  if (!anchor || !wrapperElement || !canvasElement) {
+    return;
+  }
+
+  const targetScrollLeft = canvasElement.offsetLeft + canvasElement.offsetWidth * anchor.ratioX - anchor.viewportX;
+  const targetScrollTop = canvasElement.offsetTop + canvasElement.offsetHeight * anchor.ratioY - anchor.viewportY;
+  const maxScrollLeft = Math.max(0, wrapperElement.scrollWidth - wrapperElement.clientWidth);
+  const maxScrollTop = Math.max(0, wrapperElement.scrollHeight - wrapperElement.clientHeight);
+
+  wrapperElement.scrollLeft = clamp(targetScrollLeft, 0, maxScrollLeft);
+  wrapperElement.scrollTop = clamp(targetScrollTop, 0, maxScrollTop);
+
+  const canvasBounds = canvasElement.getBoundingClientRect();
+  const nextClientY = canvasBounds.top + canvasBounds.height * anchor.ratioY;
+  const deltaY = nextClientY - anchor.clientY;
+
+  if (Math.abs(deltaY) > 0.5) {
+    window.scrollBy({ top: deltaY, behavior: "auto" });
+  }
+}
+
 function updateCanvasSize() {
   if (!canvasElement) {
     return;
@@ -439,9 +521,17 @@ function updateCanvasSize() {
   canvasElement.style.height = `${canvasHeight}px`;
 }
 
-function changeZoom(nextZoom) {
-  zoom = Math.max(0.25, Math.min(8, nextZoom));
+function changeZoom(nextZoom, anchorClientX, anchorClientY) {
+  const clampedZoom = Math.max(0.25, Math.min(8, nextZoom));
+
+  if (clampedZoom === zoom) {
+    return;
+  }
+
+  const anchor = getZoomAnchor(anchorClientX, anchorClientY);
+  zoom = clampedZoom;
   updateCanvasSize();
+  applyZoomAnchor(anchor);
   updateZoomLabel();
   redraw();
 }

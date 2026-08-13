@@ -13,8 +13,22 @@
     <h1>Stitch Grid</h1>
 
     <nav class="toolbar">
-      <button id="undoButton" type="button">Deshacer</button>
-      <button id="clearButton" type="button">Limpiar</button>
+      <div class="color-palette" aria-label="Colores guardados">
+        <span class="color-palette__label">Colores</span>
+        <div id="savedColors" class="color-palette__swatches" role="list" aria-label="Diez colores guardados"></div>
+        <button id="saveColorButton" class="color-palette__save" type="button">Guardar color</button>
+      </div>
+      <div class="project-controls">
+        <button id="saveProjectButton" type="button">Guardar proceso</button>
+        <button id="loadProjectButton" type="button">Retomar</button>
+      </div>
+      <span id="saveStatus" class="save-status" role="status" aria-live="polite"></span>
+      <button id="undoButton" class="icon-button" type="button" aria-label="Deshacer" title="Deshacer">
+        <img src="img/deshacer.svg" alt="">
+      </button>
+      <button id="clearButton" class="icon-button" type="button" aria-label="Limpiar" title="Limpiar">
+        <img src="img/limpiar.svg" alt="">
+      </button>
 
       <div class="zoom-controls">
         <button id="zoomOutButton" type="button">−</button>

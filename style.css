@@ -42,6 +42,102 @@ h1 {
   flex-wrap: wrap;
 }
 
+.color-palette {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
+  border-right: 1px solid rgba(26, 26, 26, 0.2);
+}
+
+.color-palette__label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.color-palette__swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 20px);
+  gap: 4px;
+}
+
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  min-width: 0;
+  padding: 0;
+  border: 1.5px solid #1a1a1a;
+  border-radius: 50%;
+  background: var(--swatch-color);
+}
+
+.color-swatch:hover {
+  background: var(--swatch-color);
+  transform: scale(1.12);
+}
+
+.color-swatch--empty {
+  border-style: dashed;
+  border-color: #aaa;
+  cursor: default;
+}
+
+.color-swatch--empty:hover {
+  transform: none;
+}
+
+.color-swatch--active {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 2px;
+}
+
+.color-palette__save {
+  padding: 8px 12px;
+  font-size: 11px;
+}
+
+.color-context-menu {
+  position: fixed;
+  z-index: 200;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid rgba(26, 26, 26, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+}
+
+.color-context-menu button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 5px;
+  color: #a12720;
+  font-size: 11px;
+}
+
+.color-context-menu button:hover {
+  background: #a12720;
+  color: #fff;
+}
+
+.project-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.project-controls button {
+  padding: 8px 12px;
+  font-size: 11px;
+}
+
+.save-status {
+  font-size: 12px;
+  color: #666;
+  max-width: 190px;
+}
+
 /* ── Buttons (outline style) ── */
 
 button {
@@ -75,6 +171,29 @@ button:disabled {
 button:disabled:hover {
   background: transparent;
   color: #bbb;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.icon-button:hover img {
+  filter: invert(1);
+}
+
+.icon-button:disabled img {
+  opacity: 0.3;
 }
 
 /* ── Zoom controls (single pill) ── */
@@ -384,4 +503,6 @@ canvas {
   h1 { font-size: 28px; }
   .top-bar { padding: 14px 16px; }
   #canvas-wrapper { width: calc(100% - 32px); }
+  .color-palette { width: 100%; border-right: 0; padding-right: 0; }
+  .save-status { width: 100%; max-width: none; }
 }

@@ -9,6 +9,12 @@ let gridColor = "#c8c8c8";
 let fillColor = "#000000";
 let bgColor = "#ffffff";
 let fillShape = "square";
+const SAVED_COLORS_KEY = "stitchgrid-saved-colors";
+const SAVED_PROJECT_KEY = "stitchgrid-saved-project";
+const SAVED_COLOR_SLOTS = 10;
+let savedColors = Array(SAVED_COLOR_SLOTS).fill(null);
+let activeSavedColorIndex = null;
+let colorContextMenu = null;
 
 let grid = [];
 let controls = {};
@@ -62,6 +68,11 @@ function setup() {
     zoomOutButton: document.getElementById("zoomOutButton"),
     zoomLabel: document.getElementById("zoomLabel"),
     exportSVGButton: document.getElementById("exportSVGButton"),
+    savedColors: document.getElementById("savedColors"),
+    saveColorButton: document.getElementById("saveColorButton"),
+    saveProjectButton: document.getElementById("saveProjectButton"),
+    loadProjectButton: document.getElementById("loadProjectButton"),
+    saveStatus: document.getElementById("saveStatus"),
   };
 
   wrapperElement = document.getElementById("canvas-wrapper");
@@ -72,6 +83,9 @@ function setup() {
   canvas.mouseReleased(handleCanvasRelease);
   canvasElement = canvas.elt;
   wireControls();
+  loadSavedColors();
+  renderSavedColors();
+  updateLoadProjectButton();
   updateCanvasSize();
   resetGrid();
   updateUndoButton();
@@ -111,6 +125,13 @@ function wireControls() {
   controls.undoButton.addEventListener("click", undoLastAction);
   controls.clearButton.addEventListener("click", clearGrid);
   controls.exportSVGButton.addEventListener("click", exportSVG);
+  controls.saveColorButton.addEventListener("click", saveCurrentColor);
+  controls.saveProjectButton.addEventListener("click", saveProject);
+  controls.loadProjectButton.addEventListener("click", loadProject);
+  window.addEventListener("click", closeColorContextMenu);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeColorContextMenu();
+  });
 
   for (const input of [controls.cols, controls.rows]) {
     input.addEventListener("keydown", (event) => {
@@ -120,9 +141,16 @@ function wireControls() {
     });
   }
 
-  for (const input of [controls.gridColor, controls.fillColor, controls.bgColor]) {
+  for (const input of [controls.gridColor, controls.bgColor]) {
     input.addEventListener("input", applySettings);
   }
+
+  controls.fillColor.addEventListener("input", () => {
+    const matchingIndex = savedColors.findIndex((color) => color === controls.fillColor.value);
+    if (matchingIndex !== -1) activeSavedColorIndex = matchingIndex;
+    applySettings();
+    renderSavedColors();
+  });
 
   controls.refImage.addEventListener("change", (event) => {
     const file = event.target.files[0];
@@ -233,16 +261,16 @@ function draw() {
       noFill();
       rect(x * size, y * size, size, size);
 
-      if (cellValue === 1) {
+      if (cellValue) {
         const cx = x * size + size / 2;
         const cy = y * size + size / 2;
         if (fillShape === "circle") {
           noStroke();
-          fill(fillColor);
+          fill(cellValue);
           ellipse(cx, cy, fillSize, fillSize);
         } else if (fillShape === "cross") {
           const arm = fillSize / 2 * 0.65;
-          stroke(fillColor);
+          stroke(cellValue);
           strokeWeight(fillSize * 0.18);
           strokeCap(ROUND);
           line(cx - arm, cy - arm, cx + arm, cy + arm);
@@ -251,7 +279,7 @@ function draw() {
           strokeWeight(1);
         } else {
           noStroke();
-          fill(fillColor);
+          fill(cellValue);
           rect(x * size + padding, y * size + padding, fillSize, fillSize);
         }
       }
@@ -276,7 +304,7 @@ function handleCanvasPress(event) {
   if (pointer) {
     const x = floor(pointer.x / size);
     const y = floor(pointer.y / size);
-    strokeValue = insideGrid(x, y) && grid[y][x] === 1 ? 0 : 1;
+    strokeValue = insideGrid(x, y) && grid[y][x] === fillColor ? 0 : fillColor;
   }
   beginStroke();
   paint(event);
@@ -560,16 +588,16 @@ function exportSVG() {
   const crossSW = fillSize * 0.10;
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      if (grid[y][x] === 1) {
+      if (grid[y][x]) {
         const cx = x * cellSize + cellSize / 2;
         const cy = y * cellSize + cellSize / 2;
         if (fillShape === "circle") {
-          parts.push(`<ellipse cx="${cx}" cy="${cy}" rx="${fillSize / 2}" ry="${fillSize / 2}" fill="${fillColor}"/>`);
+          parts.push(`<ellipse cx="${cx}" cy="${cy}" rx="${fillSize / 2}" ry="${fillSize / 2}" fill="${grid[y][x]}"/>`);
         } else if (fillShape === "cross") {
-          parts.push(`<line x1="${cx - crossArm}" y1="${cy - crossArm}" x2="${cx + crossArm}" y2="${cy + crossArm}" stroke="${fillColor}" stroke-width="${crossSW}" stroke-linecap="round"/>`);
-          parts.push(`<line x1="${cx + crossArm}" y1="${cy - crossArm}" x2="${cx - crossArm}" y2="${cy + crossArm}" stroke="${fillColor}" stroke-width="${crossSW}" stroke-linecap="round"/>`);
+          parts.push(`<line x1="${cx - crossArm}" y1="${cy - crossArm}" x2="${cx + crossArm}" y2="${cy + crossArm}" stroke="${grid[y][x]}" stroke-width="${crossSW}" stroke-linecap="round"/>`);
+          parts.push(`<line x1="${cx + crossArm}" y1="${cy - crossArm}" x2="${cx - crossArm}" y2="${cy + crossArm}" stroke="${grid[y][x]}" stroke-width="${crossSW}" stroke-linecap="round"/>`);
         } else {
-          parts.push(`<rect x="${x * cellSize + pad}" y="${y * cellSize + pad}" width="${fillSize}" height="${fillSize}" fill="${fillColor}"/>`);
+          parts.push(`<rect x="${x * cellSize + pad}" y="${y * cellSize + pad}" width="${fillSize}" height="${fillSize}" fill="${grid[y][x]}"/>`);
         }
       }
     }
@@ -657,4 +685,210 @@ function updateUndoButton() {
   }
 
   controls.undoButton.disabled = history.length === 0;
+}
+
+function loadSavedColors() {
+  try {
+    const storedColors = JSON.parse(localStorage.getItem(SAVED_COLORS_KEY));
+    if (Array.isArray(storedColors)) {
+      savedColors = Array.from({ length: SAVED_COLOR_SLOTS }, (_, index) => {
+        const color = storedColors[index];
+        return typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color) ? color : null;
+      });
+    }
+  } catch {
+    savedColors = Array(SAVED_COLOR_SLOTS).fill(null);
+  }
+}
+
+function saveCurrentColor() {
+  const existingIndex = savedColors.findIndex((color) => color === fillColor);
+  const firstEmptyIndex = savedColors.findIndex((color) => color === null);
+  const targetIndex = existingIndex !== -1
+    ? existingIndex
+    : (firstEmptyIndex !== -1 ? firstEmptyIndex : (activeSavedColorIndex ?? 0));
+
+  savedColors[targetIndex] = fillColor;
+  activeSavedColorIndex = targetIndex;
+  persistSavedColors();
+  renderSavedColors();
+}
+
+function selectSavedColor(index) {
+  const color = savedColors[index];
+  if (!color) return;
+
+  fillColor = color;
+  controls.fillColor.value = color;
+  activeSavedColorIndex = index;
+  renderSavedColors();
+}
+
+function persistSavedColors() {
+  localStorage.setItem(SAVED_COLORS_KEY, JSON.stringify(savedColors));
+}
+
+function renderSavedColors() {
+  if (!controls.savedColors) return;
+
+  controls.savedColors.replaceChildren(...savedColors.map((color, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "color-swatch";
+    button.setAttribute("role", "listitem");
+    button.title = color ? `Usar ${color}` : `Espacio ${index + 1} disponible`;
+    button.setAttribute("aria-label", color ? `Usar color ${color}` : `Espacio de color ${index + 1} vacío`);
+    button.style.setProperty("--swatch-color", color || "transparent");
+    if (!color) button.classList.add("color-swatch--empty");
+    if (index === activeSavedColorIndex) button.classList.add("color-swatch--active");
+    button.addEventListener("click", () => selectSavedColor(index));
+    button.addEventListener("contextmenu", (event) => openColorContextMenu(event, index));
+    return button;
+  }));
+}
+
+function openColorContextMenu(event, index) {
+  if (!savedColors[index]) return;
+  event.preventDefault();
+  closeColorContextMenu();
+
+  colorContextMenu = document.createElement("div");
+  colorContextMenu.className = "color-context-menu";
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.textContent = "Eliminar color";
+  deleteButton.addEventListener("click", (clickEvent) => {
+    clickEvent.stopPropagation();
+    savedColors[index] = null;
+    if (activeSavedColorIndex === index) activeSavedColorIndex = null;
+    persistSavedColors();
+    renderSavedColors();
+    closeColorContextMenu();
+  });
+
+  colorContextMenu.append(deleteButton);
+  document.body.append(colorContextMenu);
+  const menuBounds = colorContextMenu.getBoundingClientRect();
+  colorContextMenu.style.left = `${Math.min(event.clientX, window.innerWidth - menuBounds.width - 8)}px`;
+  colorContextMenu.style.top = `${Math.min(event.clientY, window.innerHeight - menuBounds.height - 8)}px`;
+}
+
+function closeColorContextMenu() {
+  if (colorContextMenu) {
+    colorContextMenu.remove();
+    colorContextMenu = null;
+  }
+}
+
+function saveProject() {
+  commitStroke();
+
+  const project = {
+    version: 1,
+    colBlocks,
+    rowBlocks,
+    gridColor,
+    fillColor,
+    bgColor,
+    fillShape,
+    grid,
+    savedColors,
+  };
+
+  try {
+    localStorage.setItem(SAVED_PROJECT_KEY, JSON.stringify(project));
+    updateLoadProjectButton();
+    setSaveStatus("Proceso guardado en este navegador.");
+  } catch {
+    setSaveStatus("No se pudo guardar el proceso.");
+  }
+}
+
+function loadProject() {
+  let project;
+  try {
+    project = JSON.parse(localStorage.getItem(SAVED_PROJECT_KEY));
+  } catch {
+    setSaveStatus("No se pudo recuperar el proceso guardado.");
+    return;
+  }
+
+  if (!isValidProject(project)) {
+    setSaveStatus("No hay un proceso válido para retomar.");
+    updateLoadProjectButton();
+    return;
+  }
+
+  colBlocks = project.colBlocks;
+  rowBlocks = project.rowBlocks;
+  cols = colBlocks * CELLS_PER_BLOCK;
+  rows = rowBlocks * CELLS_PER_BLOCK;
+  gridColor = project.gridColor;
+  fillColor = project.fillColor;
+  bgColor = project.bgColor;
+  fillShape = project.fillShape;
+  grid = project.grid.map((row) => [...row]);
+  savedColors = Array.from({ length: SAVED_COLOR_SLOTS }, (_, index) => project.savedColors[index] || null);
+  activeSavedColorIndex = savedColors.findIndex((color) => color === fillColor);
+  if (activeSavedColorIndex === -1) activeSavedColorIndex = null;
+
+  controls.cols.value = colBlocks;
+  controls.rows.value = rowBlocks;
+  controls.gridColor.value = gridColor;
+  controls.fillColor.value = fillColor;
+  controls.bgColor.value = bgColor;
+  const shapeButtons = {
+    square: controls.shapeSquare,
+    circle: controls.shapeCircle,
+    cross: controls.shapeCross,
+  };
+  for (const [shape, button] of Object.entries(shapeButtons)) {
+    button.classList.toggle("btn-shape--active", shape === fillShape);
+  }
+
+  history = [];
+  redoHistory = [];
+  currentStroke = null;
+  persistSavedColors();
+  renderSavedColors();
+  updateCanvasSize();
+  updateUndoButton();
+  redraw();
+  setSaveStatus("Proceso recuperado.");
+}
+
+function isValidProject(project) {
+  if (!project || !Number.isInteger(project.colBlocks) || !Number.isInteger(project.rowBlocks)) return false;
+  if (project.colBlocks < 1 || project.colBlocks > 50 || project.rowBlocks < 1 || project.rowBlocks > 50) return false;
+  if (!Array.isArray(project.grid) || project.grid.length !== project.rowBlocks * CELLS_PER_BLOCK) return false;
+  const expectedColumns = project.colBlocks * CELLS_PER_BLOCK;
+  return project.grid.every((row) => Array.isArray(row) && row.length === expectedColumns && row.every((cell) => cell === 0 || isHexColor(cell)))
+    && isHexColor(project.gridColor)
+    && isHexColor(project.fillColor)
+    && isHexColor(project.bgColor)
+    && ["square", "circle", "cross"].includes(project.fillShape)
+    && Array.isArray(project.savedColors)
+    && project.savedColors.every((color) => color === null || isHexColor(color));
+}
+
+function isHexColor(color) {
+  return typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color);
+}
+
+function updateLoadProjectButton() {
+  if (controls.loadProjectButton) {
+    try {
+      controls.loadProjectButton.disabled = !localStorage.getItem(SAVED_PROJECT_KEY);
+    } catch {
+      controls.loadProjectButton.disabled = true;
+    }
+  }
+}
+
+function setSaveStatus(message) {
+  if (!controls.saveStatus) return;
+  controls.saveStatus.textContent = message;
+  window.setTimeout(() => {
+    if (controls.saveStatus.textContent === message) controls.saveStatus.textContent = "";
+  }, 3000);
 }
